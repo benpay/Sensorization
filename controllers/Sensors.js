@@ -3,52 +3,36 @@ const { SensorType, SensorStatus } = require('../generated/prisma/enums');
 const validarUrlMiddleware = require('../middlewares/urlValidator');
 
 const register = async (req, res) => {
+    const token = req.cookies.accessToken;
+    if (!token) { return res.status(400).send("Access denied!"); }
+    
     try {
-        if (!req.body) { return res.status(400).send("Content can not be empty!"); }
-
+        // 1. Los datos ya vienen 100% validados por Zod aquí gracias al middleware
         const { sensorName, sensorCode, type, status, url, userId } = req.body;
 
-        if (!sensorName || sensorName.length < 2 || sensorName.length > 10) {
-            return res.status(400).send("Sensor name must be between 3 and 10 characters");
-        }
-        
-        if (!sensorCode || sensorCode.length < 2 || sensorCode.length > 10) {
-            return res.status(400).send("Sensor code must be between 3 and 10 characters");
-        }
-
-        if (!type || !status || !userId ) {
-            return res.status(400).send("Any required fields are missing");
-        }
-
-        if (!Object.values(SensorType).includes(type)) {
-            return res.status(400).send(`Invalid sensor type. Allowed values: ${Object.values(SensorType).join(', ')}`);
-        }
-
-        if (!Object.values(SensorStatus).includes(status)) {
-            return res.status(400).send(`Invalid sensor status. Allowed values: ${Object.values(SensorStatus).join(', ')}`);
-        }
-
+        // 2. Única validación lógica / de base de datos que se queda en el controlador
         const existingSensor = await prisma.sensor.findUnique({
             where: { sensorCode }
         });
+        if (existingSensor) {
+            return res.status(400).send("Sensor already exists");
+        }
 
-        if (existingSensor) { return res.status(400).send("Sensor already exists"); }
-
+        // 3. Ejecución directa de la validación de formato si es HTTP_POLL
         let sensorUrl = null;
-        if (type && type === SensorType.HTTP_POLL) {
+        if (type === SensorType.HTTP_POLL) {
             let validationSuccess = false;
 
-            // Si la URL no es válida, el middleware enviará una respuesta de error y no se ejecutará el resto del código.
+            // Tu middleware actual para verificar el formato físico de la URL
             validarUrlMiddleware(req, res, () => {
                 validationSuccess = true;
             });
 
-            // La respuesta de error ya se ha enviado desde el middleware.
             if (!validationSuccess) { return; }
-
-            sensorUrl = req.body.url;
+            sensorUrl = url;
         }
 
+        // 4. Inserción directa
         const sensor = await prisma.sensor.create({
             data: {
                 sensorName,
@@ -67,4 +51,17 @@ const register = async (req, res) => {
     }
 }
 
-module.exports = { register };
+const getSensors = async (req, res) => {
+    const token = req.cookies.accessToken;
+    if (!token) { return res.status(400).send("Access denied!"); }
+    
+    try {
+        const sensors = await prisma.sensor.findMany();
+        return res.status(200).json(sensors);
+    } catch (err) {
+        console.log("Error fetching sensors:", err);
+        return res.status(400).send(err);
+    }
+}
+
+module.exports = { register, getSensors };
