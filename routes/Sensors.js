@@ -1,0 +1,10 @@
+const auth = require('../middlewares/auth');
+const controller = require('../controllers/Sensors');
+
+const SensorRoutes = (app) => {
+    app.post('/sensors/register', auth, (req, res) => {
+        return controller.register(req, res);
+    })
+}
+
+module.exports = SensorRoutes;

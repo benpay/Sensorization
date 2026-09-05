@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SensorType {
+  HTTP_POLL
+  MANUAL_UPLOAD
+}
+
+enum SensorStatus {
+  active
+  paused
+}
+
+
+model User {
+  id          Int         @id @default(autoincrement())
+  email       String      @unique 
+  password    String
+  createdAt   DateTime    @default(now())
+  
+  // Fields to make relations
+  sensors     Sensor[]    // Un usuario tiene muchos sensores
+  ingestions  Ingestion[] // Un usuario tiene muchas ingestas
+}
+
+
+
+model Sensor {
+  id          Int       @id @default(autoincrement())
+  sensorName  String    @unique
+  sensorCode  String    @unique
+  type        SensorType
+  status      SensorStatus  
+  url         String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime? @updatedAt 
+  
+  // Relation with User
+  userId      Int
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Relacion with Ingestion
+  ingestions  Ingestion[]
+
+  // Relation with Temperature
+  temperatures Temperatures[]
+}
+
+
+model Ingestion {
+  id               Int          @id @default(autoincrement())
+  startedAt        DateTime     @default(now())
+  finishedAt       DateTime?
+  status           SensorStatus
+  recordsProcessed String
+  errorMessage     String?
+
+  // Relation with Sensor
+  sensorId         Int
+  sensor           Sensor       @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+  
+  // Relation with User
+  userId           Int
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+model Temperatures {
+  id        Int      @id @default(autoincrement())
+  timestamp DateTime @default(now()) @db.Timestamp(6)
+  valueC    Decimal  @db.Decimal(5, 2)
+
+  // Relation with Sensor 
+  sensorId  Int
+  sensor    Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+}
