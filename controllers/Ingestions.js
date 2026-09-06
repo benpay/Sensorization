@@ -28,33 +28,63 @@ const ingest = async (req, res) => {
         try {
             const injectionsList = req.body;
             const validInjections = [];
-            
-            if (!Array.isArray(injectionsList)) {
-                throw new Error("Invalid data format. Expected an array of records.");
-            }
 
-            for (const injection of injectionsList) {
-                if (!injection.sensorCode || injection.ts === undefined || injection.value === undefined) {
-                    throw new Error('Any required field is missing');
+            /** CASE OF FORMAT A */
+            if (Array.isArray(injectionsList)) {                
+                for (const injection of injectionsList) {
+                    if (!injection.sensorCode || injection.ts === undefined || injection.value === undefined) {
+                        throw new Error('Any required field is missing');
+                    }
+
+                    console.log(sensor.sensorCode)
+                    if (injection.sensorCode !== sensor.sensorCode) {
+                        continue;
+                    }
+
+                    const date = new Date(injection.ts);
+                    if (isNaN(date.getTime())) {
+                        throw new Error('Date ISO is not valid', injection.ts);
+                    }
+
+                    if (typeof injection.value !== 'number') {
+                        throw new Error('Temperature value is not valid', injection.value)
+                    }
+
+                    validInjections.push({
+                        sensorId: sensorId,
+                        timestamp: date,
+                        valueC: injection.value
+                    });
+                }
+            } 
+            /** CASE OF FORMAT B */
+            else if (typeof injectionsList === 'object' && 'deviceId' in injectionsList) {
+                if (injectionsList.deviceId !== sensor.sensorCode){
+                    throw new Error('deviceId ', injectionsList.deviceId,' does not match with sensor ', sensor.sensorCode);
                 }
 
-                if (injection.sensorCode !== sensor.sensorCode) {
-                    continue;
+                if (!Array.isArray(injectionsList.data) || injectionsList.data.length === 0) {
+                    throw new Error('Request requires a non-empty data array');
                 }
 
-                const date = new Date(injection.ts);
-                if (isNaN(date.getTime())) {
-                    throw new Error('Date ISO is not valid', injection.ts);
-                }
+                injectionsList.data.forEach(injection => {
+                    if (injection.time === undefined || injection.temp === undefined) {
+                        throw new Error ('Missing time or temp field');
+                    }
+                    
+                    if (typeof injection.time !== 'number'){
+                        throw new Error ('Unix timestamp must be a number')
+                    }
 
-                if (typeof injection.value !== 'number') {
-                    throw new Error('Temperature value is not valid', injection.value)
-                }
-
-                validInjections.push({
-                    sensorId: sensorId,
-                    timestamp: date,
-                    valueC: injection.value
+                    if (typeof injection.temp !== 'number'){
+                        throw new Error ('Temperature value must be a number');
+                    }
+                    
+                    validInjections.push({
+                        sensorId: sensorId,
+                        timestamp: new Date(injection.time * 1000),
+                        valueC: injection.temp
+                    });
                 });
             }
 
