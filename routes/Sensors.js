@@ -11,7 +11,7 @@ const SensorRoutes = (app) => {
         return controller.getSensors(req, res);
     })
 
-    app.get('/sensors/getSensorById/:id', auth, (req, res) => {        
+    app.get('/sensors/getSensorById/:id', auth, (req, res) => {
         return controller.getSensorById(req, res);
     })
 

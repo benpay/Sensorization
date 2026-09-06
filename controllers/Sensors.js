@@ -1,6 +1,6 @@
 const prisma = require('../lib/prisma');
 const { SensorType } = require('../generated/prisma/enums');
-const {validateUrl, validateSensor} = require('../validators/sensor.schema');
+const { validateUrl, validateSensor } = require('../validators/sensor.schema');
 
 const registerSensor = async (req, res) => {
     const token = req.cookies.accessToken;
@@ -9,7 +9,7 @@ const registerSensor = async (req, res) => {
     try {
         const { name, sensorCode, type, status } = req.body;
 
-        let validationSuccess = false;        
+        let validationSuccess = false;
         validateSensor(req, res, () => {
             validationSuccess = true;
         });
@@ -30,7 +30,7 @@ const registerSensor = async (req, res) => {
                 sensorCode,
                 type,
                 status,
-                url: sensorUrl                
+                url: sensorUrl
             }
         });
 
@@ -83,9 +83,9 @@ const updateSensorById = async (req, res) => {
     try {
         const { name, sensorCode, type, status, url } = req.body;
         const sensorId = req.params.id;
-                
+
         let sensorUrl = null;
-        if ((type !== SensorType.HTTP_POLL && type !== SensorType.MANUAL_UPLOAD)){
+        if ((type !== SensorType.HTTP_POLL && type !== SensorType.MANUAL_UPLOAD)) {
             return res.status(400).send("Type must be either HTTP_POLL or MANUAL_UPLOAD");
         }
 

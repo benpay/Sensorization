@@ -14,7 +14,7 @@ const UserRoutes = (app) => {
         return controller.logout(req, res);
     })
     
-    app.get('/welcome', auth, (req, res) => {
+    app.get('/me', auth, (req, res) => {
         return res.status(200).send("Welcome 🙌 ");
     })
 }

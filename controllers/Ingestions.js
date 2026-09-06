@@ -50,7 +50,7 @@ const ingest = async (req, res) => {
             }
             else if (sensor.type === SensorType.MANUAL_UPLOAD) { injectionsList = req.body }
             else {
-                throw new Error ("Something went wrong");
+                throw new Error("Something went wrong");
             }
 
             /** CASE OF FORMAT A */
