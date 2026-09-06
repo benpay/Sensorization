@@ -1,37 +1,67 @@
-import { z } from 'zod';
 const { SensorType, SensorStatus } = require('../generated/prisma/enums');
 
-export const RegistrarSensorSchema = z.object({
 
-  sensorName: z.string({ error: "Any required fields are missing" })
-  .min(2, "Sensor name must be between 3 and 10 characters")
-  .max(10, "Sensor name must be between 3 and 10 characters"),
+function validateUrl(req: any, res: any, next: any) {
 
-  sensorCode: z.string({ error: "Any required fields are missing" })
-  .min(2, "Sensor code must be between 3 and 10 characters")
-  .max(10, "Sensor code must be between 3 and 10 characters"),
-
-  type: z.nativeEnum(SensorType, { 
-    error: `Invalid sensor type. Allowed values: ${Object.values(SensorType).join(', ')}`,
-  }),
-
-  status: z.nativeEnum(SensorStatus, {
-    error: `Invalid sensor status. Allowed values: ${Object.values(SensorStatus).join(', ')}`,
-  }),
-
-  userId: z.number({
-    error: "Any required fields are missing",
-  }),
-
-  url: z.string().nullable().optional(),
-})
-
-.refine((data) => {
-  if (data.type === SensorType.HTTP_POLL && !data.url) {
-    return false;
+  const { url } = req.body;
+  if (!url) {
+    return { valid: false, error: 'URL is required' };
   }
-  return true;
-}, {
-  message: "La URL es obligatoria cuando el tipo es HTTP_POLL",
-  path: ["url"]
-});
+
+  try {
+    const parsedUrl = new URL(url);
+
+    // Block dangerous protocols (file://, ftp://, etc.)
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return res.status(400).json({ error: 'Only HTTP and HTTPS protocols are allowed.' });
+    }
+
+    req.body.url = parsedUrl.href;
+    next();
+  } catch (error) {
+    return res.status(400).json({ error: 'Invalid URL format.' });
+  }
+}
+
+const validateSensor = async (req: any, res: any, next: any) => {
+  try {
+    if (!req.body) { return res.status(400).send("Content can not be empty!"); }
+
+    const { sensorName, sensorCode, type, status, url, userId } = req.body;
+
+    if (!sensorName || sensorName.length < 2 || sensorName.length > 10) {
+      return res.status(400).send("Sensor name must be between 3 and 10 characters");
+    }
+
+    if (!sensorCode || sensorCode.length < 2 || sensorCode.length > 10) {
+      return res.status(400).send("Sensor code must be between 3 and 10 characters");
+    }
+
+    if (!type || !status || !userId) {
+      return res.status(400).send("Any required fields are missing");
+    }
+
+    if (type !== SensorType.HTTP_POLL && type !== SensorType.MANUAL_UPLOAD) {
+      return res.status(400).send("Type must be either HTTP_POLL or MANUAL_UPLOAD");
+    }
+
+    if (type === SensorType.HTTP_POLL) {
+      let validationSuccess = false;
+      validateUrl(req, res, () => {
+        validationSuccess = true;
+      });
+      if (!validationSuccess) { return; }
+    }
+
+    if (status !== SensorStatus.active && status !== SensorStatus.paused) {
+      return res.status(400).send("Status must be either active or paused");
+    }
+
+    next();
+  } catch (err) {
+    console.log("Error registering sensor:", err);
+    return res.status(400).send("Error registering sensor");
+  }
+}
+
+module.exports = { validateSensor };
