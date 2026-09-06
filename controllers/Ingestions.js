@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
 const { SensorType, IngestionStatus } = require('../generated/prisma/enums');
 const timespan = require('jsonwebtoken/lib/timespan');
+const { validateUrl } = require('../validators/sensor.schema');
 
 const ingest = async (req, res) => {
     const token = req.cookies.accessToken;
@@ -26,11 +27,34 @@ const ingest = async (req, res) => {
         });
 
         try {
-            const injectionsList = req.body;
             const validInjections = [];
+            let injectionsList;
+
+            if (sensor.type === SensorType.HTTP_POLL) {
+                if (!sensor.url) {
+                    throw new Error("HTTP_POLL sensor require a configured URL")
+                }
+
+                let validationSuccess = false;
+                validateUrl(req, res, () => {
+                    validationSuccess = true;
+                });
+                if (!validationSuccess) { return; }
+
+                const response = await fetch(sensor.url);
+                if (!response.ok) {
+                    throw new Error('Not OK to fetch data from remote url')
+                }
+
+                injectionsList = await response.json();
+            }
+            else if (sensor.type === SensorType.MANUAL_UPLOAD) { injectionsList = req.body }
+            else {
+                throw new Error ("Something went wrong");
+            }
 
             /** CASE OF FORMAT A */
-            if (Array.isArray(injectionsList)) {                
+            if (Array.isArray(injectionsList)) {
                 for (const injection of injectionsList) {
                     if (!injection.sensorCode || injection.ts === undefined || injection.value === undefined) {
                         throw new Error('Any required field is missing');
@@ -56,11 +80,11 @@ const ingest = async (req, res) => {
                         valueC: injection.value
                     });
                 }
-            } 
+            }
             /** CASE OF FORMAT B */
             else if (typeof injectionsList === 'object' && 'deviceId' in injectionsList) {
-                if (injectionsList.deviceId !== sensor.sensorCode){
-                    throw new Error('deviceId ', injectionsList.deviceId,' does not match with sensor ', sensor.sensorCode);
+                if (injectionsList.deviceId !== sensor.sensorCode) {
+                    throw new Error('deviceId ', injectionsList.deviceId, ' does not match with sensor ', sensor.sensorCode);
                 }
 
                 if (!Array.isArray(injectionsList.data) || injectionsList.data.length === 0) {
@@ -69,17 +93,17 @@ const ingest = async (req, res) => {
 
                 injectionsList.data.forEach(injection => {
                     if (injection.time === undefined || injection.temp === undefined) {
-                        throw new Error ('Missing time or temp field');
-                    }
-                    
-                    if (typeof injection.time !== 'number'){
-                        throw new Error ('Unix timestamp must be a number')
+                        throw new Error('Missing time or temp field');
                     }
 
-                    if (typeof injection.temp !== 'number'){
-                        throw new Error ('Temperature value must be a number');
+                    if (typeof injection.time !== 'number') {
+                        throw new Error('Unix timestamp must be a number')
                     }
-                    
+
+                    if (typeof injection.temp !== 'number') {
+                        throw new Error('Temperature value must be a number');
+                    }
+
                     validInjections.push({
                         sensorId: sensorId,
                         timestamp: new Date(injection.time * 1000),
