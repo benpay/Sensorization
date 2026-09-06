@@ -13,9 +13,9 @@ const register = async (req, res) => {
     try {
         if (!req.body) { return res.status(400).send("Content can not be empty!"); }
 
-        const { name, email, password } = req.body;
+        const { email, password } = req.body;
 
-        if (!name || !email || !password) {
+        if (!email || !password) {
             return res.status(400).send("All fields are required");
         }
 
@@ -28,11 +28,15 @@ const register = async (req, res) => {
         const user = await prisma.user.create({
             data: {                
                 email,
-                password: await bcrypt.hash(password, 10)
+                passwordHash: await bcrypt.hash(password, 10)
             }
         });
 
-        return res.status(201).json(user);
+        return res.status(201).json({
+            id: user.id,
+            email: user.email,
+            createdAt: user.createdAt
+        });
     } catch (err) {
         console.log("Error registering user:", err);
         return res.status(400).send(err);
@@ -55,7 +59,7 @@ const login = async (req, res) => {
             where: { email }
         });
 
-        if (!user || !(await bcrypt.compare(password, user.password))) {
+        if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
             return res.status(401).send("Invalid credentials");
         }
 
@@ -68,7 +72,10 @@ const login = async (req, res) => {
             path: '/'
         })
 
-        return res.status(200).json({ message: "User logged in successfully", user: { name: user.name, email: user.email, password: user.password } });
+        return res.status(200).json({
+            message: "User logged in successfully",
+            user: { id: user.id, email: user.email }
+        });
             
     } catch (err) {
         console.log("Error logging in user:", err);

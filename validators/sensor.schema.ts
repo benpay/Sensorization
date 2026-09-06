@@ -27,9 +27,9 @@ const validateSensor = async (req: any, res: any, next: any) => {
   try {
     if (!req.body) { return res.status(400).send("Content can not be empty!"); }
 
-    const { sensorName, sensorCode, type, status, url, userId } = req.body;
+    const { name, sensorCode, type, status } = req.body;
 
-    if (!sensorName || sensorName.length < 2 || sensorName.length > 10) {
+    if (!name || name.length < 2 || name.length > 10) {
       return res.status(400).send("Sensor name must be between 3 and 10 characters");
     }
 
@@ -37,7 +37,7 @@ const validateSensor = async (req: any, res: any, next: any) => {
       return res.status(400).send("Sensor code must be between 3 and 10 characters");
     }
 
-    if (!type || !status || !userId) {
+    if (!type || !status) {
       return res.status(400).send("Any required fields are missing");
     }
 

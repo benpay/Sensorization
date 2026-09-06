@@ -2,12 +2,12 @@ const prisma = require('../lib/prisma');
 const { SensorType } = require('../generated/prisma/enums');
 const {validateUrl, validateSensor} = require('../validators/sensor.schema');
 
-const register = async (req, res) => {
+const registerSensor = async (req, res) => {
     const token = req.cookies.accessToken;
     if (!token) { return res.status(400).send("Access denied!"); }
 
     try {
-        const { sensorName, sensorCode, type, status, userId } = req.body;
+        const { name, sensorCode, type, status } = req.body;
 
         let validationSuccess = false;        
         validateSensor(req, res, () => {
@@ -26,12 +26,11 @@ const register = async (req, res) => {
         const sensorUrl = req.body.url || null;
         const sensor = await prisma.sensor.create({
             data: {
-                sensorName,
+                name,
                 sensorCode,
                 type,
                 status,
-                url: sensorUrl,
-                userId
+                url: sensorUrl                
             }
         });
 
@@ -63,13 +62,10 @@ const getSensorById = async (req, res) => {
     if (!token) { return res.status(400).send("Access denied!"); }
 
     try {
-        const sensorId = parseInt(req.params.id);
-        if (isNaN(sensorId)) {
-            return res.status(400).send("Invalid sensor ID");
-        }
+        const sensorId = req.params.id;
 
         const sensorById = await prisma.sensor.findUnique({
-            where: { id: parseInt(sensorId) }
+            where: { id: sensorId }
         });
 
         return res.status(200).json(sensorById);
@@ -85,12 +81,8 @@ const updateSensorById = async (req, res) => {
     if (!token) { return res.status(400).send("Access denied!"); }
 
     try {
-        const { sensorName, sensorCode, type, status, url } = req.body;
-        const sensorId = parseInt(req.params.id);
-
-        if (isNaN(parseInt(sensorId))) {
-            return res.status(400).send("Invalid sensor ID");
-        }
+        const { name, sensorCode, type, status, url } = req.body;
+        const sensorId = req.params.id;
                 
         let sensorUrl = null;
         if ((type !== SensorType.HTTP_POLL && type !== SensorType.MANUAL_UPLOAD)){
@@ -112,18 +104,28 @@ const updateSensorById = async (req, res) => {
             sensorUrl = url;
         }
 
-        const sensorNameExists = await prisma.sensor.findUnique({
-            where: { sensorName }
+        const existingSensor = await prisma.sensor.findUnique({
+            where: { id: sensorId }
         });
-        
-        if (sensorNameExists && sensorNameExists.id !== sensorId) {
-            return res.status(400).send("A sensor with this name already exists");
+
+        if (!existingSensor) {
+            return res.status(404).send("This sensor does not exist");
+        }
+
+        if (sensorCode && sensorCode !== existingSensor.sensorCode) {
+            const sensorWithCode = await prisma.sensor.findUnique({
+                where: { sensorCode }
+            });
+
+            if (sensorWithCode) {
+                return res.status(400).send("A sensor with this code already exists");
+            }
         }
 
         const updateSensor = await prisma.sensor.update({
             where: { id: sensorId },
             data: {
-                sensorName: sensorName || prisma.skip,
+                name: name || prisma.skip,
                 sensorCode: sensorCode || prisma.skip,
                 type: type || prisma.skip,
                 status: status || prisma.skip,
@@ -161,4 +163,4 @@ const deleteSensorById = async (req, res) => {
     }
 }
 
-module.exports = { register, getSensors, getSensorById, updateSensorById, deleteSensorById };
+module.exports = { registerSensor, getSensors, getSensorById, updateSensorById, deleteSensorById };

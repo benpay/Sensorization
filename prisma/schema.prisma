@@ -17,66 +17,54 @@ enum SensorStatus {
   paused
 }
 
-
-model User {
-  id          Int         @id @default(autoincrement())
-  email       String      @unique 
-  password    String
-  createdAt   DateTime    @default(now())
-  
-  // Fields to make relations
-  sensors     Sensor[]    // Un usuario tiene muchos sensores
-  ingestions  Ingestion[] // Un usuario tiene muchas ingestas
+enum IngestionStatus {
+  success
+  error
 }
 
-
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
 
 model Sensor {
-  id          Int       @id @default(autoincrement())
-  sensorName  String    @unique
-  sensorCode  String    @unique
-  type        SensorType
-  status      SensorStatus  
-  url         String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime? @updatedAt 
-  
-  // Relation with User
-  userId      Int
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String       @id @default(uuid())
+  name       String
+  sensorCode String       @unique
+  type       SensorType
+  status     SensorStatus @default(active)
+  url        String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
   
   // Relacion with Ingestion
   ingestions  Ingestion[]
 
   // Relation with Temperature
-  temperatures Temperatures[]
+  temperatures Temperature[]
 }
-
 
 model Ingestion {
-  id               Int          @id @default(autoincrement())
-  startedAt        DateTime     @default(now())
+  id               String          @id @default(uuid())
+  startedAt        DateTime        @default(now())
   finishedAt       DateTime?
-  status           SensorStatus
-  recordsProcessed String
+  status           IngestionStatus
+  recordsProcessed Int             @default(0)
   errorMessage     String?
 
-  // Relation with Sensor
-  sensorId         Int
-  sensor           Sensor       @relation(fields: [sensorId], references: [id], onDelete: Cascade)
-  
-  // Relation with User
-  userId           Int
-  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Relation with Sensor 
+  sensorId         String
+  sensor           Sensor          @relation(fields: [sensorId], references: [id], onDelete: Cascade)
 }
 
-
-model Temperatures {
-  id        Int      @id @default(autoincrement())
-  timestamp DateTime @default(now()) @db.Timestamp(6)
-  valueC    Decimal  @db.Decimal(5, 2)
+model Temperature {
+  id              Int             @id @default(autoincrement())
+  timestamp       DateTime        @default(now()) @db.Timestamp(6)
+  valueC          Decimal         @db.Decimal(5, 2)
 
   // Relation with Sensor 
-  sensorId  Int
-  sensor    Sensor   @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+  sensorId         String
+  sensor           Sensor          @relation(fields: [sensorId], references: [id], onDelete: Cascade)
 }

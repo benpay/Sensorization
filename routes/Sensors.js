@@ -1,9 +1,10 @@
 const auth = require('../middlewares/auth');
 const controller = require('../controllers/Sensors');
+const ingestion = require('../controllers/Ingestions');
 
 const SensorRoutes = (app) => {
-    app.post('/sensors/register', auth, (req, res) => {
-        return controller.register(req, res);
+    app.post('/sensors/registerSensor', auth, (req, res) => {
+        return controller.registerSensor(req, res);
     })
 
     app.get('/sensors/getSensors', auth, (req, res) => {
@@ -22,7 +23,9 @@ const SensorRoutes = (app) => {
         return controller.deleteSensorById(req, res);
     })
 
-    
+    app.post('/ingestion/ingest/:id/ingest', auth, (req, res) => {
+        return ingestion.ingest(req, res);
+    })
 }
 
 module.exports = SensorRoutes;
