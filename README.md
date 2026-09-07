@@ -1,7 +1,7 @@
 # Sensorization API
 
 API REST en Node.js para la gestión de sensores de temperatura y la ingesta de sus lecturas. Permite registrar sensores (por sondeo HTTP o por carga manual), administrar su ciclo de vida y almacenar las mediciones recibidas, dejando un histórico (`Ingestion`) de cada ejecución de ingesta con su estado y errores. 
-Se han añadido unas consideraciones al final del documento.
+Se han añadido unas mejoras y consideraciones al final del documento.
 
 ## Índice
 
@@ -282,6 +282,16 @@ Ejecuta un proceso de ingesta de temperaturas para el sensor `:id` y registra el
 
 desde `.env` mediante `dotenv`.
 
+
+## Mejoras
+
+- El código tiene varias mejoras por realizar tal cual está ahora el código, como quitar código redundante y meterlo en módulos que se puedan importar.
+- La parte de la ingesta por HTTP no he podido verificarla, por lo que es posibel que esta parte no sea 100% funcional.
+- En las validaciones de nombre y código he puesto una limitación de 10 que puede ser algo pequeña, pero debería tener limitación máxima.
+- La verificación de valores repetidos se podría añadir realizando una concatenación del código del sensor + el timestamp.
+- Revisar el código con el MCP de context7 para aplicarle buenas prácticas y mejorar el código.
+
+  
 ## Consideraciones
 
 - Type y Status son obligatorios en registro pero no se verifica en base de datos para tener flexibilidad al no tener claro en las specs como debería ser, al estar con 2 lógicas luego sería aclarar que caso y adaptar en uno de los lados, siendo mas restrictivo en la validación del back por seguridad.
