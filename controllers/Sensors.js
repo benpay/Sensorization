@@ -146,10 +146,7 @@ const deleteSensorById = async (req, res) => {
     if (!token) { return res.status(400).send("Access denied!"); }
 
     try {
-        const sensorId = parseInt(req.params.id);
-        if (isNaN(sensorId)) {
-            return res.status(400).send("Invalid sensor ID");
-        }
+        const sensorId = req.params.id;
 
         const deletedSensor = await prisma.sensor.delete({
             where: { id: sensorId }

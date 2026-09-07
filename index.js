@@ -5,6 +5,7 @@ const server = http.createServer(app);
 const routes = require('./routes/Users');
 const SensorRoutes = require('./routes/Sensors');
 const cookieParser = require('cookie-parser');
+const cors = require('cors');
 
 if (process.env.NODE_ENV !== 'production') {
     require('dotenv/config'); 
@@ -12,6 +13,10 @@ if (process.env.NODE_ENV !== 'production') {
 
 const {PORT} = process.env;
 
+app.use(cors({
+    origin: 'http://localhost:3000',
+    credentials: true
+}));
 app.use(express.json());
 app.use(cookieParser());
 routes(app);
