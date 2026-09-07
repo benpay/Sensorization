@@ -104,6 +104,8 @@ Scripts disponibles (`package.json`):
 | `npm start` | Arranca el servidor con `tsx index.js` |
 | `npm run dev` | Arranca en modo desarrollo (`NODE_ENV=development`) con `tsx watch` |
 | `npm run db:dev` | Levanta una base de datos local de Prisma (`prisma dev`) y abre Prisma Studio |
+| `npx prisma dev` | Arranca la base de datos |
+| `npx prisma studio --config prisma7.config.ts` | Levanta una instancia en local de Prisma Studio para gestionar la BDD|
 
 ## Variables de entorno
 
